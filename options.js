@@ -43,9 +43,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (items.weights) {
             // Default to 50 if missing
-            const l = items.weights.labour || 50;
-            const e = items.weights.env || 50;
-            const a = items.weights.animals || 50;
+            const getVal = (v) => {
+                // If it's a number (or string number), return it.
+                if (v !== undefined && v !== null && !isNaN(v)) return v;
+                // Otherwise (legacy strings 'High', 'Medium', etc.) force to 50
+                return 50;
+            };
+
+            const l = getVal(items.weights.labour);
+            const e = getVal(items.weights.env);
+            const a = getVal(items.weights.animals);
 
             document.getElementById('weight-labour').value = l;
             document.getElementById('val-labour').textContent = l;
