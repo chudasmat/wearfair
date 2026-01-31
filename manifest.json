@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Ethical Shopping Assistant",
+  "version": "1.0",
+  "description": "Analyze product pages and get an AI-generated ethical score.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ]
+}

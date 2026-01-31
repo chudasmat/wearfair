@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ethical Score</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>Ethical Score</h1>
+      <button id="settings-btn" aria-label="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z">
+          </path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
+    </header>
+    <div style="text-align: center; font-size: 10px; color: #999; margin-top: -10px; margin-bottom: 10px;">v1.1</div>
+
+    <div id="main-content">
+      <div id="loading" class="hidden">
+        <div class="spinner"></div>
+        <p>Analyzing product...</p>
+      </div>
+
+      <div id="setup-required" class="hidden">
+        <div class="icon-warning">⚠️</div>
+        <p>Please set your Gemini API Key in Settings to start.</p>
+        <button id="go-to-settings" class="btn-primary">Open Settings</button>
+      </div>
+
+      <div id="results" class="hidden">
+        <div class="score-container">
+          <div class="score-circle">
+            <span id="score-value">--</span>
+            <span class="score-label">/100</span>
+          </div>
+          <p id="score-verdict">Evaluating...</p>
+        </div>
+
+        <div class="details-section">
+          <h3>Breakdown</h3>
+          <div class="breakdown-item">
+            <span>Labour</span>
+            <div class="progress-bar">
+              <div id="bar-labour" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="breakdown-item">
+            <span>Environment</span>
+            <div class="progress-bar">
+              <div id="bar-environment" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="breakdown-item">
+            <span>Animals</span>
+            <div class="progress-bar">
+              <div id="bar-animals" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-section">
+          <h3>Analysis</h3>
+          <p id="reasoning-text" class="small-text"></p>
+        </div>
+
+        <div class="details-section">
+          <h3>Alternatives</h3>
+          <ul id="alternatives-list">
+            <!-- Alternatives populated here -->
+          </ul>
+        </div>
+      </div>
+
+      <div id="error-view" class="hidden">
+        <p class="error-msg" id="error-msg">Something went wrong.</p>
+        <button id="retry-btn" class="btn-secondary">Retry</button>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+
+</html>
