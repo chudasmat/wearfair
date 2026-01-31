@@ -65,3 +65,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// Clear Cache
+document.getElementById('clear-cache-btn').addEventListener('click', () => {
+    chrome.storage.local.get(null, (items) => {
+        const keysToRemove = Object.keys(items).filter(k => k.startsWith('analysis_'));
+        if (keysToRemove.length > 0) {
+            chrome.storage.local.remove(keysToRemove, () => {
+                const btn = document.getElementById('clear-cache-btn');
+                const originalText = btn.textContent;
+                btn.textContent = "Cleared!";
+                setTimeout(() => btn.textContent = originalText, 2000);
+            });
+        } else {
+            alert("Cache is already empty.");
+        }
+    });
+});

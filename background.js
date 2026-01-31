@@ -3,7 +3,7 @@
 // In MV3, this is ephemeral.
 
 chrome.runtime.onInstalled.addListener(() => {
-    console.log("Ethical Shopping Assistant installed.");
+    console.log("wearFair extension installed.");
 });
 
 // Listener for messages from popup or content script
