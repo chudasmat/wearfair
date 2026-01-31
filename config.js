@@ -1,0 +1,3 @@
+const CONFIG = {
+    GEMINI_API_KEY: "AIzaSyCOzofvNkUXQAgLO8yrkpIV2YuGjV7ZEII"
+};

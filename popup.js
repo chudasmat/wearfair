@@ -22,6 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('retry-btn').addEventListener('click', () => startAnalysisFlow());
     document.getElementById('start-btn').addEventListener('click', () => startAnalysisFlow());
 
+    // History Features
+    document.getElementById('history-btn').addEventListener('click', toggleHistory);
+    document.getElementById('close-history').addEventListener('click', toggleHistory);
+    document.getElementById('history-overlay').addEventListener('click', toggleHistory);
+    document.getElementById('clear-history-btn').addEventListener('click', clearHistory);
+
     init();
 });
 
@@ -54,6 +60,11 @@ function startAnalysis(apiKey, weights, bypassCache = false) {
             showError("No active tab found.");
             return;
         }
+
+        // Setup Link in UI early if we have URL (best effort)
+        const currentUrl = tabs[0].url;
+        document.getElementById('product-link').href = currentUrl;
+        document.getElementById('product-link').textContent = "Analyzing...";
 
         const tabId = tabs[0].id;
 
@@ -138,17 +149,22 @@ async function analyzeWithGemini(apiKey, weights, pageContent, cleanUrl) {
     """${pageContent.substring(0, 10000)}""" 
     
     Task:
-    1. Identify the product.
+    1. Identify the EXACT Product Name (short and concise, avoid extra keywords).
     2. Rate it on a scale of 0-100 for Labour, Environment, and Animals based on available information (use general brand knowledge if specific details are missing).
        - 0 = Unethical / No Info / Bad
        - 100 = Perfect / Certified Ethical
     3. Provide a SHORT 1-sentence thought/reasoning.
     4. Suggest 2 better ethical alternatives if average score is likely < 80. If high ethical standards, return an EMPTY array [].
        IMPORTANT: Alternatives must be the SAME specific product type (e.g. if analyzing a blazer, suggest ONLY blazers, not socks or general clothing).
-       For alternatives, provide the "name" and a valid "url" (homepage is fine).
+       For alternatives, provide the "name" and a valid "url".
+       CRITICAL URL RULES:
+       - Use the OFFICIAL brand homepage if you are not 100% sure of the product link.
+       - DO NOT GUESS top-level domains (e.g. do NOT guess .eu or .de). Use .com if unsure.
+       - Verify the link is not a gambling/spam site if possible.
 
     Return ONLY VALID JSON in this format:
     {
+        "name": "string",
         "breakdown": { "labour": number, "environment": number, "animals": number },
         "reasoning": "string",
         "alternatives": [{ "name": "string", "url": "string" }]
@@ -230,12 +246,12 @@ async function verifyAlternatives(alts) {
 
             if (!resp.ok) return null; // Link broken
 
-            // Basic content check (read first 2000 chars)
+            // Basic content check (read first 5000 chars)
             const text = await resp.text();
             const startContent = text.substring(0, 5000).toLowerCase();
 
             // 1. Gambling/Spam Blocklist
-            const blocklist = ['casino', 'betting', 'gambling', 'slots', 'poker', 'lottery', 'domain for sale', 'buy this domain'];
+            const blocklist = ['casino', 'betting', 'gambling', 'slots', 'poker', 'lottery', 'domain for sale', 'buy this domain', 'investing.com', 'sedo', 'godaddy'];
             const suspicious = blocklist.some(word => startContent.includes(word));
 
             if (suspicious) {
@@ -303,8 +319,93 @@ function getCleanUrl(url) {
     }
 }
 
+// --- History Logic ---
+
+function toggleHistory() {
+    const panel = document.getElementById('history-panel');
+    const overlay = document.getElementById('history-overlay');
+    const isOpen = panel.classList.contains('open');
+
+    if (isOpen) {
+        panel.classList.remove('open');
+        overlay.classList.remove('visible');
+    } else {
+        panel.classList.add('open');
+        overlay.classList.add('visible');
+        renderHistory();
+    }
+}
+
+function clearHistory() {
+    if (!confirm("Are you sure you want to clear your local history?")) return;
+
+    chrome.storage.local.get(null, (items) => {
+        const keysToRemove = Object.keys(items).filter(k => k.startsWith('analysis_v3_'));
+        if (keysToRemove.length > 0) {
+            chrome.storage.local.remove(keysToRemove, () => {
+                renderHistory(); // Update UI
+            });
+        }
+    });
+}
+
+function renderHistory() {
+    chrome.storage.local.get(null, (items) => {
+        const list = document.getElementById('history-list');
+        list.innerHTML = '';
+
+        const historyItems = Object.keys(items)
+            .filter(k => k.startsWith('analysis_v3_'))
+            .map(k => {
+                const data = items[k];
+                return {
+                    key: k,
+                    name: data.name || "Unknown Product",
+                    // Estimate score if missing (legacy)
+                    score: data.breakdown ? Math.round((data.breakdown.labour + data.breakdown.environment + data.breakdown.animals) / 3) : '?',
+                    url: k.replace('analysis_v3_', ''),
+                    data: data
+                };
+            });
+
+        if (historyItems.length === 0) {
+            list.innerHTML = '<li style="padding:10px; color:#999; text-align:center;">No history yet check back later!</li>';
+            return;
+        }
+
+        historyItems.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'history-item';
+
+            li.innerHTML = `
+                <div class="history-name">${item.name}</div>
+                <div class="history-score">${item.score}</div>
+            `;
+
+            li.addEventListener('click', () => {
+                renderResults(item.data);
+                if (item.data.name) {
+                    // Update UI immediately since we have data
+                    document.getElementById('product-link').textContent = item.data.name;
+                    document.getElementById('product-link').href = `https://${item.url}`; // Simple reconstruction
+                }
+                toggleHistory(); // Close panel
+            });
+
+            list.appendChild(li);
+        });
+    });
+}
+
 function renderResults(data) {
     showView('results');
+
+    // Update Product Name
+    const nameEl = document.getElementById('product-link');
+    nameEl.textContent = data.name || "Product Name";
+    // If URL is missing in data, we can't set href perfectly without context, 
+    // but typically renderResults is called after analysis which knows the URL.
+    // We'll leave href as # if unknown, or set it if we have it.
 
     // Calculate Score Locally based on current weights
     chrome.storage.local.get(['weights'], (res) => {
@@ -400,6 +501,7 @@ async function checkCloudDatabase(cleanUrl) {
             const row = data[0];
             // Map DB row back to our extension format
             return {
+                name: row.name, // NEW
                 breakdown: {
                     labour: row.labour_score,
                     environment: row.env_score,
@@ -420,6 +522,7 @@ async function saveToCloud(cleanUrl, result) {
     try {
         const payload = {
             url: cleanUrl,
+            name: result.name || "Unknown Product", // NEW
             labour_score: result.breakdown.labour,
             env_score: result.breakdown.environment,
             animal_score: result.breakdown.animals,
