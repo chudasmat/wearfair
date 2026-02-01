@@ -3,6 +3,12 @@
   "name": "wearFair",
   "version": "1.0",
   "description": "Analyze product pages and get an AI-generated ethical score.",
+  "icons": {
+    "16": "icons/logo16.png",
+    "32": "icons/logo32.png",
+    "64": "icons/logo64.png",
+    "128": "icons/logo128.png"
+  },
   "permissions": [
     "activeTab",
     "storage",
@@ -15,7 +21,13 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/logo16.png",
+      "32": "icons/logo32.png",
+      "64": "icons/logo64.png",
+      "128": "icons/logo128.png"
+    }
   },
   "options_page": "options.html",
   "content_scripts": [
