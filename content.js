@@ -20,8 +20,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const data = {
             url: window.location.href,
             title: document.title,
-            content: getPageContent()
+            content: getPageContent(),
+            looksLikeClothingStore: checkIsClothingStore()
         };
         sendResponse(data);
     }
 });
+
+function checkIsClothingStore() {
+    const text = document.body.innerText.toLowerCase();
+    const clothingKeywords = [
+        "basket",
+        "cart",
+        "size",
+        "colour",
+        "color",
+        "fabric",
+        "fit",
+        "model wears",
+        "material",
+        "bag",
+        "shoes",
+        "accessories"
+    ];
+
+    let matchCount = 0;
+    clothingKeywords.forEach(k => {
+        if (text.includes(k)) matchCount++;
+    });
+
+    return matchCount >= 3;
+}

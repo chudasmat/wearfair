@@ -22,6 +22,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('retry-btn').addEventListener('click', () => startAnalysisFlow());
     document.getElementById('start-btn').addEventListener('click', () => startAnalysisFlow());
 
+    // Warning View Actions
+    document.getElementById('warning-cancel').addEventListener('click', () => {
+        showView('start-view');
+    });
+    // Proceed button will be handled dynamically or we can store state, 
+    // but simpler to just let startAnalysisFlow handle the logic if we split it.
+    // Actually, we need to pass the data we already scraped to proceed, 
+    // so we'll set the onclick inside the flow or store a global.
+
+
     // History Features
     document.getElementById('history-btn').addEventListener('click', toggleHistory);
     document.getElementById('close-history').addEventListener('click', toggleHistory);
@@ -72,48 +82,63 @@ function startAnalysis(apiKey, weights, bypassCache = false) {
         const executeScrape = () => {
             chrome.tabs.sendMessage(tabId, { action: "get_product_data" }, (response) => {
                 if (chrome.runtime.lastError) {
-                    // If content script is missing, we might need to inject it or just fail gracefully
                     console.warn(chrome.runtime.lastError);
                     showError("Could not connect to page. Try manually refreshing.");
                     return;
                 }
 
                 if (response && response.content) {
-                    // Logic to handle cache/API
-                    const cleanUrl = getCleanUrl(response.url);
-                    console.log("Clean URL:", cleanUrl);
-                    const cacheKey = `analysis_v3_${cleanUrl}`;
+                    // Check Heuristic
+                    if (response.looksLikeClothingStore === false) {
+                        // Explicit false check (in case undefined in old versions)
+                        showView('site-warning-view');
 
-                    if (!bypassCache) {
-                        chrome.storage.local.get([cacheKey], async (cacheResult) => {
-                            if (cacheResult[cacheKey]) {
-                                console.log("Cache hit for:", cleanUrl);
-                                renderResults(cacheResult[cacheKey]);
-                                return;
-                            }
-
-                            // Level 2: Check Cloud Database
-                            if (typeof checkCloudDatabase === 'function') {
-                                const cloudResult = await checkCloudDatabase(cleanUrl);
-                                if (cloudResult) {
-                                    console.log("Cloud DB hit for:", cleanUrl);
-                                    // Save to local for faster next access
-                                    chrome.storage.local.set({ [cacheKey]: cloudResult });
-                                    renderResults(cloudResult);
-                                    return;
-                                }
-                            }
-
-                            // Miss: Call API
-                            analyzeWithGemini(apiKey, weights, response.content, cleanUrl);
-                        });
-                    } else {
-                        analyzeWithGemini(apiKey, weights, response.content, cleanUrl);
+                        document.getElementById('warning-proceed').onclick = () => {
+                            showView('loading');
+                            runAnalysis(response);
+                        };
+                        return;
                     }
+
+                    runAnalysis(response);
                 } else {
                     showError("Could not extract content from this page.");
                 }
             });
+        };
+
+        const runAnalysis = (response) => {
+            // Logic to handle cache/API
+            const cleanUrl = getCleanUrl(response.url);
+            console.log("Clean URL:", cleanUrl);
+            const cacheKey = `analysis_v3_${cleanUrl}`;
+
+            if (!bypassCache) {
+                chrome.storage.local.get([cacheKey], async (cacheResult) => {
+                    if (cacheResult[cacheKey]) {
+                        console.log("Cache hit for:", cleanUrl);
+                        renderResults(cacheResult[cacheKey]);
+                        return;
+                    }
+
+                    // Level 2: Check Cloud Database
+                    if (typeof checkCloudDatabase === 'function') {
+                        const cloudResult = await checkCloudDatabase(cleanUrl);
+                        if (cloudResult) {
+                            console.log("Cloud DB hit for:", cleanUrl);
+                            // Save to local for faster next access
+                            chrome.storage.local.set({ [cacheKey]: cloudResult });
+                            renderResults(cloudResult);
+                            return;
+                        }
+                    }
+
+                    // Miss: Call API
+                    analyzeWithGemini(apiKey, weights, response.content, cleanUrl);
+                });
+            } else {
+                analyzeWithGemini(apiKey, weights, response.content, cleanUrl);
+            }
         };
 
         // RELOAD logic (Requested by user)
@@ -469,7 +494,7 @@ function renderResults(data) {
 }
 
 function showView(id) {
-    ['start-view', 'loading', 'setup-required', 'results', 'error-view'].forEach(viewId => {
+    ['start-view', 'loading', 'setup-required', 'results', 'error-view', 'site-warning-view'].forEach(viewId => {
         document.getElementById(viewId).classList.add('hidden');
     });
     document.getElementById(id).classList.remove('hidden');
